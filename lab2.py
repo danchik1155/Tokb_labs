@@ -1,8 +1,11 @@
 from PyQt5 import QtWidgets
 import time
+import datetime
 import win32com.client  # слушаем USB
 from threading import Thread  # потоки для кейлогера
-from newkeylog import logger
+
+from newkeylog import logger, read_keylog, read_bad_words, read_bad_guys_bad_word, write_bad_guys_bad_word
+from chek_time import read_bad_guys_bad_time, chek_timimg, message, write_bad_guys_time
 
 from Adminmenu import Ui_Adminmenu
 from Chooseoptionsform import Ui_Chooseoptionsform
@@ -11,7 +14,7 @@ from Newuserform import Ui_Newuserform
 from Newuserpass import Ui_Newpassform
 from Listofusers import Ui_Listofusers
 from Userspace import Ui_Userspace
-from Outputform import Ui_Outputform
+#from Outputform import Ui_Outputform
 from USBAccess import Ui_USBAccess
 from Magicsquare import Ui_MagicSquare
 
@@ -26,68 +29,8 @@ from Magicsquare import Ui_MagicSquare
 # [6] - разрешённые устройства
 
 
-def read_keylog():
-    try:
-        f = open("keylog.txt", 'r')
-        log = f.readline()
-        f.close()
-        return log
-    except FileNotFoundError:
-        f = open("keylog.txt", 'w')
-        f.close()
-    except ValueError:
-        f = open("keylog.txt", 'w')
-        f.close()
-    except SyntaxError:
-        f = open("keylog.txt", 'w')
-        f.close()
-    return ''
 
-def read_bad_words():
-    try:
-        f = open('badwords.txt', 'r')
-        st = f.readline().rstrip().lower().split(' ')
-        f.close()
-        return st
-    except FileNotFoundError:
-        f = open("badwords.txt", 'w')
-        f.close()
-        return []
-    except ValueError:
-        f = open("badwords.txt", 'w')
-        f.close()
-        return []
-    except SyntaxError:
-        f = open("badwords.txt", 'w')
-        f.close()
-        return []
 
-def read_bad_guys_bad_word():
-    try:
-        f = open('bad_guys_bad_word.txt', 'r')
-        st = f.readline().rstrip().split(' ')
-        f.close()
-        return st
-    except FileNotFoundError:
-        f = open('bad_guys_bad_word.txt', 'w')
-        f.close()
-        return []
-    except ValueError:
-        f = open('bad_guys_bad_word.txt', 'w')
-        f.close()
-        return []
-    except SyntaxError:
-        f = open('bad_guys_bad_word.txt', 'w')
-        f.close()
-        return []
-
-def write_bad_guys_bad_word(bad_guys: list):
-    bad_guys_str = ''
-    for i in bad_guys:
-        bad_guys_str += (i + ' ')
-    f = open('bad_guys_bad_word.txt', 'w')
-    f.write(bad_guys_str)
-    f.close()
 
 class Tokb(QtWidgets.QMainWindow):
     def __init__(self):
@@ -102,13 +45,13 @@ class Tokb(QtWidgets.QMainWindow):
         try:
             self.readall()
         except FileNotFoundError:
-            self.iffileerror()
+            self.if_file_error()
             self.readall()
         except ValueError:
-            self.iffileerror()
+            self.if_file_error()
             self.readall()
         except SyntaxError:
-            self.iffileerror()
+            self.if_file_error()
             self.readall()
         # print("Вход " + str(self.users.items()))
         for self.user in self.users:
@@ -127,10 +70,10 @@ class Tokb(QtWidgets.QMainWindow):
                 self.name = self.wind.Userslist.currentText()
                 self.openuserspacedialog()
             else:
-                self.message('Not correct pass, you have ' + str(self.tryes - 1) + ' tryes')
+                message('Not correct pass, you have ' + str(self.tryes - 1) + ' tryes')
                 self.tryes = self.tryes - 1
         else:
-            self.message('A lot of not correct passwords. Good bye!')
+            message('A lot of not correct passwords. Good bye!')
             self.close()
 
     def openuserspacedialog(self):
@@ -140,8 +83,9 @@ class Tokb(QtWidgets.QMainWindow):
         self.dialog.setupUi(self)
         self.dialog.Username.setText(self.name)
         self.dialog.Exit.clicked.connect(self.exitbutton)
-        self.dialog.ChangepassButton.clicked.connect(self.opennewpassformdialog)
+        self.dialog.ChangepassButton.clicked.connect(self.open_new_pass_form_dialog)
         self.checkingpass()
+        self.cheking_bad_time()
 
         self.thread1 = Thread(target=logger)
         self.thread1.start()
@@ -149,52 +93,52 @@ class Tokb(QtWidgets.QMainWindow):
 
         wmi = win32com.client.GetObject("winmgmts:")
         for objItem in wmi.InstancesOf("CIM_DiskDrive"):
-            if objItem.Caption != None and objItem.MediaType == "Removable Media":
+            if objItem.Caption is not None and objItem.MediaType == "Removable Media":
                 if objItem.PNPDeviceID not in self.users[self.name][6]:
-                    self.messagetoadmin()
+                    self.message_to_admin()
                 else:
                     pass
 
-    def opennewpassformdialog(self):
+    def open_new_pass_form_dialog(self):
         self.dialognp = Ui_Newpassform()
         self.dialognp.setupUi(self)
         self.dialognp.Back.clicked.connect(self.backtouserspacedialog)
-        self.dialognp.Newpasssubmit.clicked.connect(self.createnewpass)
+        self.dialognp.Newpasssubmit.clicked.connect(self.create_new_pass)
 
-    def createnewpass(self):
-        self.oldpass = self.dialognp.Olduserpass.text()
-        if self.oldpass == self.users[self.name][0]:
-            self.newpass = self.dialognp.Newuserpass.text()
+    def create_new_pass(self):
+        self.old_pass = self.dialognp.Olduserpass.text()
+        if self.old_pass == self.users[self.name][0]:
+            self.new_pass = self.dialognp.Newuserpass.text()
             if time.time() - self.users[self.name][1] < self.users[self.name][3]:
-                self.message('You mast wait ' + str(
+                message('You mast wait ' + str(
                     self.users[self.name][3] - int(time.time() - self.users[self.name][1])) + ' seconds')
                 self.backtouserspacedialog()
-            elif self.newpass[len(self.newpass) - 1] == ' ':
-                self.message('The space (" ") can\'t be used as a last symbol of pass')
-            elif len(self.newpass) > 25:
-                self.message('Max len of all passwords in system is 25')
+            elif self.new_pass[len(self.new_pass) - 1] == ' ':
+                message('The space (" ") can\'t be used as a last symbol of pass')
+            elif len(self.new_pass) > 25:
+                message('Max len of all passwords in system is 25')
             elif len(self.dialognp.Newuserpass.text()) < self.users[self.name][2]:
-                self.message('Pass is so short, min length is ' + str(self.users[self.name][2]))
+                message('Pass is so short, min length is ' + str(self.users[self.name][2]))
             elif self.users[self.name][4]:
-                if set(".,:;!_*-+()/#¤%&)").isdisjoint(self.newpass) or \
-                        set("ABCDEFGHIJKLMNOPQRSTUVWXYZ".rstrip()).isdisjoint(self.newpass) or \
-                        set("abcdefghijklmnopqrstuvwxyz").isdisjoint(self.newpass) or \
-                        set("1234567890").isdisjoint(self.newpass):
-                    self.message('You must use special symbols, numbers and letters of different registers')
+                if set(".,:;!_*-+()/#¤%&)").isdisjoint(self.new_pass) or \
+                        set("ABCDEFGHIJKLMNOPQRSTUVWXYZ".rstrip()).isdisjoint(self.new_pass) or \
+                        set("abcdefghijklmnopqrstuvwxyz").isdisjoint(self.new_pass) or \
+                        set("1234567890").isdisjoint(self.new_pass):
+                    message('You must use special symbols, numbers and letters of different registers')
                 else:
-                    self.users[self.name][0] = self.newpass
+                    self.users[self.name][0] = self.new_pass
                     self.users[self.name][1] = time.time()
-                    self.writeall()
-                    self.message('Successful new pass')
+                    self.write_all()
+                    message('Successful new pass')
                     self.backtouserspacedialog()
             else:
-                self.users[self.name][0] = self.newpass
+                self.users[self.name][0] = self.new_pass
                 self.users[self.name][1] = time.time()
-                self.writeall()
-                self.message('Successful new pass')
+                self.write_all()
+                message('Successful new pass')
                 self.backtouserspacedialog()
         else:
-            self.message('Old pass is not correct')
+            message('Old pass is not correct')
 
     def checkingpass(self):
         if self.users[self.name][4]:
@@ -202,11 +146,11 @@ class Tokb(QtWidgets.QMainWindow):
                     set("ABCDEFGHIJKLMNOPQRSTUVWXYZ".rstrip()).isdisjoint(self.users[self.name][0]) or \
                     set("abcdefghijklmnopqrstuvwxyz").isdisjoint(self.users[self.name][0]) or \
                     set("1234567890").isdisjoint(self.users[self.name][0]):
-                self.message('You must use special symbols, numbers and letters of different registers in your pass!')
-                self.opennewpassformdialog()
+                message('You must use special symbols, numbers and letters of different registers in your pass!')
+                self.open_new_pass_form_dialog()
         if len(self.users[self.name][0]) < self.users[self.name][2]:
-            self.message('Your pass is so short, min length is ' + str(self.users[self.name][2]))
-            self.opennewpassformdialog()
+            message('Your pass is so short, min length is ' + str(self.users[self.name][2]))
+            self.open_new_pass_form_dialog()
 
     def readall(self):
         self.users = {}
@@ -217,21 +161,21 @@ class Tokb(QtWidgets.QMainWindow):
         for user in self.users:
             self.users[user][0] = self.deshifr(self.users[user][0])
         if len(self.users) < 1:
-            self.iffileerror()
+            self.if_file_error()
         # print(self.users.items())
         # print(self.key)
 
-    def iffileerror(self):
+    def if_file_error(self):
         self.users = {'Admin': ['Admin', time.time(), 1, 5, False, True, []]}
         self.key = [25, 13, 1, 19, 7, 16, 9, 22, 15, 3, 12, 5, 18, 6, 24, 8, 21, 14, 2, 20, 4, 17, 10, 23, 11]
-        self.writeall()
+        self.write_all()
 
     def writepotok(self, to_do):
         f = open('potok.txt', 'w')
         f.write(to_do)
         f.close()
 
-    def writeall(self):
+    def write_all(self):
         for user in self.users:
             self.users[user][0] = self.shifr(self.users[user][0])
         self.f = open('users.txt', 'w')
@@ -250,21 +194,17 @@ class Tokb(QtWidgets.QMainWindow):
         self.wind = Ui_Entering()
         self.writepotok('1')
         self.cheking_bad_word()
+        self.cheking_bad_time()
         f = open('keylog.txt', 'w')
         f.close()
         #  self.thread1.join()
         self.initiation()
         self.wind.Enter.clicked.connect(self.entering)
 
-    def message(self, needstext):
-        error = Error()
-        error.wind.textBrowser.setText(needstext)
-        error.exec_()
-
-    def messagetoadmin(self):
+    def message_to_admin(self):
         if self.name not in self.users['Admin'][6]:
             self.users['Admin'][6].append(self.name)
-            self.writeall()
+            self.write_all()
 
     def shifr(self, needs):
         new = ""
@@ -287,12 +227,25 @@ class Tokb(QtWidgets.QMainWindow):
         words = read_keylog()
         bad_words = read_bad_words()
         bad_guys = read_bad_guys_bad_word()
+        if bad_words == ['']:
+            write_bad_guys_bad_word(bad_guys)
+            return
         for i in bad_words:
             if i in words:
                 if self.name not in bad_guys:
                     bad_guys.append(str(self.name))
         write_bad_guys_bad_word(bad_guys)
 
+    def cheking_bad_time(self):
+        bad_guys = read_bad_guys_bad_time()
+        if chek_timimg():
+            if self.name not in bad_guys:
+                bad_guys.append(str(self.name))
+        write_bad_guys_time(bad_guys)
+
+
+def about():
+    message('Created by student Danila Urvantsev')
 
 
 class Ui_Adminmenu_2(Tokb):
@@ -309,88 +262,88 @@ class Ui_Adminmenu_2(Tokb):
         self.admin.setupUi(self)  # Инициализация GUI
         self.admin.NewuserButton.clicked.connect(self.opennewuserformdialog)  # Кнопка New user
         self.admin.ListofusersButton.clicked.connect(self.openlistofusersdialog)  # Кнопка List of users
-        self.admin.ChangepassButton.clicked.connect(self.opennewpassformdialogad)  # Кнопка Change pass
+        self.admin.ChangepassButton.clicked.connect(self.open_new_pass_form_dialog_ad)  # Кнопка Change pass
         self.admin.MagicsquareButton.clicked.connect(self.openmagicsquaredialogad)
         self.admin.ChooseoptionsButton.clicked.connect(self.openchooseoptionsformdialog)  # Кнопка Choose options
-        self.admin.AboutButton.clicked.connect(self.about)
+        self.admin.AboutButton.clicked.connect(about)
         self.admin.Exit.clicked.connect(self.openexitdialog)  # Кнопка Exit
-        self.checkingpassad()
-        self.badnews()
+        self.checking_pass_ad()
+        self.bad_news()
         self.readall()
 
     # дублируем функции пароля для админа чтобы исключить баг мгновенного подтверждения пароля без ожидания времени
 
-    def checkingpassad(self):
+    def checking_pass_ad(self):
         if self.users[self.name][4]:
             if set(".,:;!_*-+()/#¤%&)").isdisjoint(self.users[self.name][0]) or \
                     set("ABCDEFGHIJKLMNOPQRSTUVWXYZ".rstrip()).isdisjoint(self.users[self.name][0]) or \
                     set("abcdefghijklmnopqrstuvwxyz").isdisjoint(self.users[self.name][0]) or \
                     set("1234567890").isdisjoint(self.users[self.name][0]):
-                self.message('You must use special symbols, numbers and letters of different registers in your pass!')
-                self.opennewpassformdialogad()
+                message('You must use special symbols, numbers and letters of different registers in your pass!')
+                self.open_new_pass_form_dialog_ad()
         if len(self.users[self.name][0]) < self.users[self.name][2]:
-            self.message('Your pass is so short, min length is ' + str(self.users[self.name][2]))
-            self.opennewpassformdialogad()
+            message('Your pass is so short, min length is ' + str(self.users[self.name][2]))
+            self.open_new_pass_form_dialog_ad()
 
-    def opennewpassformdialogad(self):
+    def open_new_pass_form_dialog_ad(self):
         self.dialognp = Ui_Newpassform()
         self.dialognp.setupUi(self)
-        self.dialognp.Back.clicked.connect(self.backbutton)
-        self.dialognp.Newpasssubmit.clicked.connect(self.createnewpassad)
+        self.dialognp.Back.clicked.connect(self.back_button)
+        self.dialognp.Newpasssubmit.clicked.connect(self.create_new_pass_ad)
 
-    def createnewpassad(self):
-        self.oldpass = self.dialognp.Olduserpass.text()
-        if self.oldpass == self.users[self.name][0]:
-            self.newpass = self.dialognp.Newuserpass.text()
+    def create_new_pass_ad(self):
+        self.old_pass = self.dialognp.Olduserpass.text()
+        if self.old_pass == self.users[self.name][0]:
+            self.new_pass = self.dialognp.Newuserpass.text()
             if time.time() - self.users[self.name][1] < self.users[self.name][3]:
-                self.message('You mast wait ' + str(
+                message('You mast wait ' + str(
                     self.users[self.name][3] - int(time.time() - self.users[self.name][1])) + ' seconds')
-                self.backbutton()
-            elif self.newpass[len(self.newpass) - 1] == ' ':
-                self.message('The space (" ") can\'t be used as a last symbol of pass')
-            elif len(self.newpass) > 25:
-                self.message('Max len of all passwords in system is 25')
+                self.back_button()
+            elif self.new_pass[len(self.new_pass) - 1] == ' ':
+                message('The space (" ") can\'t be used as a last symbol of pass')
+            elif len(self.new_pass) > 25:
+                message('Max len of all passwords in system is 25')
             elif len(self.dialognp.Newuserpass.text()) < self.users[self.name][2]:
-                self.message('Pass is so short, min length is ' + str(self.users[self.name][2]))
+                message('Pass is so short, min length is ' + str(self.users[self.name][2]))
             elif self.users[self.name][4]:
-                if set(".,:;!_*-+()/#¤%&)").isdisjoint(self.newpass) or \
-                        set("ABCDEFGHIJKLMNOPQRSTUVWXYZ".rstrip()).isdisjoint(self.newpass) or \
-                        set("abcdefghijklmnopqrstuvwxyz").isdisjoint(self.newpass) or \
-                        set("1234567890").isdisjoint(self.newpass):
-                    self.message('You must use special symbols, numbers and letters of different registers')
+                if set(".,:;!_*-+()/#¤%&)").isdisjoint(self.new_pass) or \
+                        set("ABCDEFGHIJKLMNOPQRSTUVWXYZ".rstrip()).isdisjoint(self.new_pass) or \
+                        set("abcdefghijklmnopqrstuvwxyz").isdisjoint(self.new_pass) or \
+                        set("1234567890").isdisjoint(self.new_pass):
+                    message('You must use special symbols, numbers and letters of different registers')
                 else:
-                    self.users[self.name][0] = self.newpass
+                    self.users[self.name][0] = self.new_pass
                     self.users[self.name][1] = time.time()
-                    self.writeall()
-                    self.message('Successful new pass')
-                    self.backbutton()
+                    self.write_all()
+                    message('Successful new pass')
+                    self.back_button()
             else:
-                self.users[self.name][0] = self.newpass
+                self.users[self.name][0] = self.new_pass
                 self.users[self.name][1] = time.time()
-                self.writeall()
-                self.message('Successful new pass')
-                self.backbutton()
+                self.write_all()
+                message('Successful new pass')
+                self.back_button()
         else:
-            self.message('Old pass is not correct')
+            message('Old pass is not correct')
 
     def opennewuserformdialog(self):
         self.dialognu = Ui_Newuserform()
         self.dialognu.setupUi(self)
-        self.dialognu.Back.clicked.connect(self.backbutton)
+        self.dialognu.Back.clicked.connect(self.back_button)
         self.dialognu.Newusersubmit.clicked.connect(self.newusersubmit)
 
     def newusersubmit(self):
         if self.dialognu.Newusername.text() in self.users:
-            self.message('You are already have this user')
+            message('You are already have this user')
         elif self.dialognu.Newusername.text() == '':
-            self.message('The field is empty')
+            message('The field is empty')
         elif self.dialognu.Newusername.text().isspace():
-            self.message('The field is only spaces')
+            message('The field is only spaces')
         else:
             self.users.update({self.dialognu.Newusername.text(): ["Qwerty1", time.time(), 1, 5, False, True, []]})
-            self.writeall()
-            self.message('User \"' + self.dialognu.Newusername.text() + '\" is created')
-            self.backbutton()
+            self.write_all()
+            message('User \"' + self.dialognu.Newusername.text() + '\" is created')
+            self.back_button()
 
     def openlistofusersdialog(self):
         self.readall()
@@ -410,75 +363,75 @@ class Ui_Adminmenu_2(Tokb):
                 r = r + 1
         self.dialog.deleteuserButton.clicked.connect(self.deletinguser)
         self.dialog.Options.clicked.connect(self.usersoptions)
-        self.dialog.Back.clicked.connect(self.backbutton)
+        self.dialog.Back.clicked.connect(self.back_button)
         self.dialog.USB.clicked.connect(self.usbdialog)
 
     def usersoptions(self):
         if self.dialog.Userslist.count() < 1:
-            self.message('List of users is empty')
+            message('List of users is empty')
         else:
             self.user = self.ables[self.dialog.Userslist.currentIndex()]
             self.openchooseoptionsformdialog()
 
     def usbdialog(self):
         if self.dialog.Userslist.count() < 1:
-            self.message('List of users is empty')
+            message('List of users is empty')
         else:
             self.user = self.ables[self.dialog.Userslist.currentIndex()]
-            self.userusb = UsbAccess()
+            self.user_usb = UsbAccess()
             r = 0
-            self.ablesusb = {}
+            self.able_usb = {}
             wmi = win32com.client.GetObject("winmgmts:")
             for objItem in wmi.InstancesOf("CIM_DiskDrive"):
-                if objItem.Caption != None and objItem.MediaType == "Removable Media":
+                if objItem.Caption is not None and objItem.MediaType == "Removable Media":
                     if objItem.PNPDeviceID not in self.users[self.user][6]:
-                        self.userusb.wind.USBlist.addItem(objItem.Caption)
+                        self.user_usb.wind.USBlist.addItem(objItem.Caption)
                     else:
-                        self.userusb.wind.USBlist.addItem("(✔)" + objItem.Caption)
-                    self.ablesusb.update({r: objItem})
+                        self.user_usb.wind.USBlist.addItem("(✔)" + objItem.Caption)
+                    self.able_usb.update({r: objItem})
                     r = r + 1
 
-            self.userusb.wind.Back.clicked.connect(self.usbclose)
-            self.userusb.wind.GiveaccessButton.clicked.connect(self.usbaccess)
-            self.userusb.wind.DenyaccessButton.clicked.connect(self.usbdenya)
-            self.userusb.exec_()
+            self.user_usb.wind.Back.clicked.connect(self.usbclose)
+            self.user_usb.wind.GiveaccessButton.clicked.connect(self.usb_access)
+            self.user_usb.wind.DenyaccessButton.clicked.connect(self.usb_deny)
+            self.user_usb.exec_()
 
-    def usbaccess(self):
-        if self.userusb.wind.USBlist.count() < 1:
-            self.message('List of users is empty')
+    def usb_access(self):
+        if self.user_usb.wind.USBlist.count() < 1:
+            message('List of users is empty')
         else:
-            self.selectedusb = self.ablesusb[self.userusb.wind.USBlist.currentIndex()]
-            if self.selectedusb.PNPDeviceID not in self.users[self.user][6]:
-                self.users[self.user][6].append(self.selectedusb.PNPDeviceID)
-                self.writeall()
+            self.selected_usb = self.able_usb[self.user_usb.wind.USBlist.currentIndex()]
+            if self.selected_usb.PNPDeviceID not in self.users[self.user][6]:
+                self.users[self.user][6].append(self.selected_usb.PNPDeviceID)
+                self.write_all()
                 self.usbclose()
                 self.usbdialog()
 
-    def usbdenya(self):
-        if self.userusb.wind.USBlist.count() < 1:
-            self.message('List of users is empty')
+    def usb_deny(self):
+        if self.user_usb.wind.USBlist.count() < 1:
+            message('List of users is empty')
         else:
-            self.selectedusb = self.ablesusb[self.userusb.wind.USBlist.currentIndex()]
-            if self.selectedusb.PNPDeviceID in self.users[self.user][6]:
-                self.users[self.user][6].pop(self.users[self.user][6].index(self.selectedusb.PNPDeviceID))
-                self.writeall()
+            self.selected_usb = self.able_usb[self.user_usb.wind.USBlist.currentIndex()]
+            if self.selected_usb.PNPDeviceID in self.users[self.user][6]:
+                self.users[self.user][6].pop(self.users[self.user][6].index(self.selected_usb.PNPDeviceID))
+                self.write_all()
                 self.usbclose()
                 self.usbdialog()
 
     def usbclose(self):
-        self.userusb.close()
+        self.user_usb.close()
 
     def deletinguser(self):
         if self.dialog.Userslist.count() < 1:
-            self.message('List of users is empty')
+            message('List of users is empty')
         else:
             self.user = self.ables[self.dialog.Userslist.currentIndex()]
             if self.user == 'Admin':
-                self.message('Admin can\'t be deleted!')
+                message('Admin can\'t be deleted!')
             else:
                 self.users.pop(self.user)
-                self.writeall()
-                self.message('User \"' + self.user + '\" deleted')
+                self.write_all()
+                message('User \"' + self.user + '\" deleted')
                 self.openlistofusersdialog()
 
     def openmagicsquaredialogad(self):
@@ -494,41 +447,41 @@ class Ui_Adminmenu_2(Tokb):
         sumright = self.dialogms.No_5.value() + self.dialogms.No_9.value() + self.dialogms.No_13.value() + self.dialogms.No_17.value() + self.dialogms.No_21.value()
         stroks = [0, 0, 0, 0, 0]
         stolbs = [0, 0, 0, 0, 0]
-        vrem = 1
+        vr2 = 1
         for i in range(5):
             for j in range(5):
-                nn = 'No_' + str(vrem)
-                vrem = vrem + 1
+                nn = 'No_' + str(vr2)
+                vr2 = vr2 + 1
                 exec("stroks[" + str(i) + "] = stroks[" + str(i) + "] + self.dialogms." + nn + ".value()")
-        vrem = 1
+        vr2 = 1
         for i in range(5):
             for j in range(5):
-                nn = 'No_' + str(vrem)
-                vrem = vrem + 5
+                nn = 'No_' + str(vr2)
+                vr2 = vr2 + 5
                 exec("stolbs[" + str(i) + "] = stolbs[" + str(i) + "] + self.dialogms." + nn + ".value()")
-            vrem = (vrem % 25) + 1
-        itog = True
+            vr2 = (vr2 % 25) + 1
+        fin = True
         for i in stroks:
             if i != 65:
-                itog = False
+                fin = False
         for i in stolbs:
             if i != 65:
-                itog = False
+                fin = False
         if (sumleft != 65) or (sumright != 65):
-            itog = False
-        vrem = []
+            fin = False
+        vr2 = []
         for i in range(1, 26):
             nn = 'No_' + str(i)
-            exec("vrem.append(self.dialogms." + nn + ".value())")
-        vvrem = set(vrem)
-        if len(vrem) != len(vvrem):
-            itog = False
-        if itog:
+            exec("vr2.append(self.dialogms." + nn + ".value())")
+        vr = set(vr2)
+        if len(vr2) != len(vr):
+            fin = False
+        if fin:
             for i in range(1, 26):
                 nn = 'No_' + str(i)
                 exec("self.key[" + str(i - 1) + "] = self.dialogms." + nn + ".value()")
-            self.writeall()
-            self.backbutton()
+            self.write_all()
+            self.back_button()
         else:
             print('It\'s not magic square')
 
@@ -545,51 +498,40 @@ class Ui_Adminmenu_2(Tokb):
 
     def activation(self):
         self.users[self.user][5] = True
-        self.writeall()
-        self.backbutton()
+        self.write_all()
+        self.back_button()
 
     def deactivation(self):
         if self.user == 'Admin':
-            self.message('Admin can\'t be deactivated!')
+            message('Admin can\'t be deactivated!')
         else:
             self.users[self.user][5] = False
-            self.writeall()
-        self.backbutton()
+            self.write_all()
+        self.back_button()
 
     def submitoptions(self):
         self.users[self.user][2] = self.dialogop.Mindlin.value()
         self.users[self.user][3] = self.dialogop.Mintime.value()
         self.users[self.user][4] = self.dialogop.checsimvol.isChecked()
-        self.writeall()
-        self.backbutton()
-
-    def about(self):
-        self.message('Created by student Danila Urvantsev')
+        self.write_all()
+        self.back_button()
 
     def openexitdialog(self):
         self.admin = Tokb()
         self.admin.show()
         self.close()
 
-    def backbutton(self):
+    def back_button(self):
         self.initiationad()
 
-    def badnews(self):
-        badguys = ""
+    def bad_news(self):
+        all_bad_guys = ""
         if len(self.users[self.user][6]) != 0:
             for i in self.users[self.user][6]:
-                badguys = badguys + ' ' + i
-            self.message(badguys + ' tried get access to the USB')
+                all_bad_guys = all_bad_guys + ' ' + i
+            message(all_bad_guys + ' tried get access to the USB')
         self.users[self.user][6] = []
-        self.writeall()
-
-
-class Error(QtWidgets.QDialog):
-    def __init__(self):
-        super(Error, self).__init__()
-        self.wind = Ui_Outputform()
-        self.wind.setupUi(self)
-        self.wind.textBrowser.setText('-*-')
+        self.write_all()
 
 
 class UsbAccess(QtWidgets.QDialog):

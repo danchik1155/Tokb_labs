@@ -245,7 +245,7 @@ class Tokb(QtWidgets.QMainWindow):
         # else:
         #     self.wind = Ui_Adminmenu_2()
         #     self.wind.show()
-        #     self.wind.backbutton()
+        #     self.wind.back_button()
         #     self.close()
 
     def exitbutton(self):
