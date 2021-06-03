@@ -26,6 +26,69 @@ from Magicsquare import Ui_MagicSquare
 # [6] - разрешённые устройства
 
 
+def read_keylog():
+    try:
+        f = open("keylog.txt", 'r')
+        log = f.readline()
+        f.close()
+        return log
+    except FileNotFoundError:
+        f = open("keylog.txt", 'w')
+        f.close()
+    except ValueError:
+        f = open("keylog.txt", 'w')
+        f.close()
+    except SyntaxError:
+        f = open("keylog.txt", 'w')
+        f.close()
+    return ''
+
+def read_bad_words():
+    try:
+        f = open('badwords.txt', 'r')
+        st = f.readline().rstrip().split(' ')
+        f.close()
+        return st
+    except FileNotFoundError:
+        f = open("badwords.txt", 'w')
+        f.close()
+        return []
+    except ValueError:
+        f = open("badwords.txt", 'w')
+        f.close()
+        return []
+    except SyntaxError:
+        f = open("badwords.txt", 'w')
+        f.close()
+        return []
+
+def read_bad_guys_bad_word():
+    try:
+        f = open('bad_guys_bad_word.txt', 'r')
+        st = f.readline().rstrip().split(' ')
+        f.close()
+        return st
+    except FileNotFoundError:
+        f = open('bad_guys_bad_word.txt', 'w')
+        f.close()
+        return []
+    except ValueError:
+        f = open('bad_guys_bad_word.txt', 'w')
+        f.close()
+        return []
+    except SyntaxError:
+        f = open('bad_guys_bad_word.txt', 'w')
+        f.close()
+        return []
+
+def write_bad_guys_bad_word(bad_guys: list):
+    bad_guys_str = ''
+    for i in bad_guys:
+        bad_guys_str += (i + ' ')
+    f = open('bad_guys_bad_word.txt', 'w')
+    f.write(bad_guys_str)
+    f.close()
+
 class Tokb(QtWidgets.QMainWindow):
     def __init__(self):
         super(Tokb, self).__init__()
@@ -221,46 +284,15 @@ class Tokb(QtWidgets.QMainWindow):
         return new
 
     def cheking_bad_word(self):
-        words = self.read_keylog()
-        try:
-            f = open('badwords.txt', 'r')
-            bad_words = f.readline().rstrip().split(' ')
-        except FileNotFoundError:
-            f = open("badwords.txt", 'w')
-            f.close()
-            bad_words = []
-        except ValueError:
-            f = open("badwords.txt", 'w')
-            f.close()
-            bad_words = []
-        except SyntaxError:
-            f = open("badwords.txt", 'w')
-            f.close()
-            bad_words = []
-        bad_guys = []
+        words = read_keylog()
+        bad_words = read_bad_words()
+        bad_guys = read_bad_guys_bad_word()
         for i in bad_words:
             if i in words:
                 if self.name not in bad_guys:
-                    bad_guys.append(self.name)
-                    f = open('bad_guys_bad_word.txt', 'a+')
-                    f.write(self.name + ' ')
-                    f.close()
+                    bad_guys.append(str(self.name))
+        write_bad_guys_bad_word(bad_guys)
 
-    def read_keylog(self):
-        try:
-            f = open("keylog.txt", 'r')
-            log = f.readline()
-            return log
-        except FileNotFoundError:
-            f = open("keylog.txt", 'w')
-            f.close()
-        except ValueError:
-            f = open("keylog.txt", 'w')
-            f.close()
-        except SyntaxError:
-            f = open("keylog.txt", 'w')
-            f.close()
-        return ''
 
 
 class Ui_Adminmenu_2(Tokb):
