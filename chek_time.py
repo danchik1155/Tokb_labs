@@ -84,7 +84,7 @@ def error_in_time():
 
 def chek_time(borders):
     now_time = time.localtime(time.time()).tm_hour
-    if (now_time < borders[0]) or (now_time > borders[1]):
+    if (now_time <= borders[0]) or (now_time >= borders[1]):
         return False
     return True
 

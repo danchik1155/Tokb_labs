@@ -1,19 +1,18 @@
 from PyQt5 import QtWidgets
 import time
-import datetime
 import win32com.client  # слушаем USB
 from threading import Thread  # потоки для кейлогера
 
 from newkeylog import logger, read_keylog, read_bad_words, read_bad_guys_bad_word, write_bad_guys_bad_word
 from chek_time import read_bad_guys_bad_time, chek_timimg, message, write_bad_guys_time
 
-from Adminmenu import Ui_Adminmenu
+from Adminmenu_img import Ui_Adminmenu
 from Chooseoptionsform import Ui_Chooseoptionsform
 from Entering import Ui_Entering
 from Newuserform import Ui_Newuserform
 from Newuserpass import Ui_Newpassform
 from Listofusers import Ui_Listofusers
-from Userspace import Ui_Userspace
+from Userspace_img import Ui_Userspace
 #from Outputform import Ui_Outputform
 from USBAccess import Ui_USBAccess
 from Magicsquare import Ui_MagicSquare
@@ -28,9 +27,34 @@ from Magicsquare import Ui_MagicSquare
 # [5] - активность пользователя
 # [6] - разрешённые устройства
 
+def about():
+    message('Created by student Danila Urvantsev')
 
+def news_from_file(file_name, title):
+    try:
+        f = open(file_name, 'r')
+        st = f.readline().rstrip().split(' ')
+        f.close()
+    except FileNotFoundError:
+        f = open(file_name, 'w')
+        f.close()
+        st = []
+    except ValueError:
+        f = open(file_name, 'w')
+        f.close()
+        st = []
+    except SyntaxError:
+        f = open(file_name, 'w')
+        f.close()
+        st = []
+    out_msg = str(title)
+    for i in st:
+        out_msg += (' ' + i)
+    return out_msg
 
-
+def clear_file(file_name):
+    f = open(file_name, 'w')
+    f.close()
 
 class Tokb(QtWidgets.QMainWindow):
     def __init__(self):
@@ -238,14 +262,10 @@ class Tokb(QtWidgets.QMainWindow):
 
     def cheking_bad_time(self):
         bad_guys = read_bad_guys_bad_time()
-        if chek_timimg():
+        if not chek_timimg():
             if self.name not in bad_guys:
                 bad_guys.append(str(self.name))
         write_bad_guys_time(bad_guys)
-
-
-def about():
-    message('Created by student Danila Urvantsev')
 
 
 class Ui_Adminmenu_2(Tokb):
@@ -525,14 +545,23 @@ class Ui_Adminmenu_2(Tokb):
         self.initiationad()
 
     def bad_news(self):
-        all_bad_guys = ""
+        all_bad_news = ''
+        bad_guys_usb = 'Tried get access to the USB '
         if len(self.users[self.user][6]) != 0:
             for i in self.users[self.user][6]:
-                all_bad_guys = all_bad_guys + ' ' + i
-            message(all_bad_guys + ' tried get access to the USB')
+                bad_guys_usb += (' ' + i)
+
+        bad_guys_words = news_from_file('bad_guys_bad_word.txt', '\nWrote bad words:')
+        bad_guys_times = news_from_file('bad_guys_bad_time.txt', '\nTried to work not in time:')
+
+        all_bad_news = bad_guys_usb + bad_guys_words + bad_guys_times
+
+        message(all_bad_news)
+
         self.users[self.user][6] = []
         self.write_all()
-
+        clear_file('bad_guys_bad_word.txt')
+        clear_file('bad_guys_bad_time.txt')
 
 class UsbAccess(QtWidgets.QDialog):
     def __init__(self):

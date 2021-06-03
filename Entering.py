@@ -36,9 +36,6 @@ class Ui_Entering(object):
         self.Enter.setFont(font)
         self.Enter.setObjectName("Enter")
         Entering.setCentralWidget(self.centralwidget)
-        self.statusbar = QtWidgets.QStatusBar(Entering)
-        self.statusbar.setObjectName("statusbar")
-        Entering.setStatusBar(self.statusbar)
 
         self.retranslateUi(Entering)
         QtCore.QMetaObject.connectSlotsByName(Entering)

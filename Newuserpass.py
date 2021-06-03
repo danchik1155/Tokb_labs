@@ -42,9 +42,6 @@ class Ui_Newpassform(object):
         self.Newuserpass.setFont(font)
         self.Newuserpass.setObjectName("Newuserpass")
         Newpassform.setCentralWidget(self.centralwidget)
-        self.statusbar = QtWidgets.QStatusBar(Newpassform)
-        self.statusbar.setObjectName("statusbar")
-        Newpassform.setStatusBar(self.statusbar)
 
         self.retranslateUi(Newpassform)
         QtCore.QMetaObject.connectSlotsByName(Newpassform)
