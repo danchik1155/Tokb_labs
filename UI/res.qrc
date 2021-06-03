@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="imgs">
+    <file>../admin.jpg</file>
+    <file>../user.jpg</file>
+  </qresource>
+</RCC>
