@@ -49,7 +49,7 @@ def news_from_file(file_name, title):
         st = []
     out_msg = str(title)
     for i in st:
-        out_msg += (' ' + i)
+        out_msg += (' ' + i + ';')
     return out_msg
 
 def clear_file(file_name):
