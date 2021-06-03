@@ -46,7 +46,7 @@ def read_keylog():
 def read_bad_words():
     try:
         f = open('badwords.txt', 'r')
-        st = f.readline().rstrip().split(' ')
+        st = f.readline().rstrip().lower().split(' ')
         f.close()
         return st
     except FileNotFoundError:
