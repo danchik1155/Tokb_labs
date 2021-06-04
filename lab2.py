@@ -5,6 +5,7 @@ from threading import Thread  # потоки для кейлогера
 
 from newkeylog import logger, read_keylog, read_bad_words, read_bad_guys_bad_word, write_bad_guys_bad_word
 from chek_time import read_bad_guys_bad_time, chek_timimg, message, write_bad_guys_time
+from Messages_to_users import read_messages, write_messages
 
 from Adminmenu_img import Ui_Adminmenu
 from Chooseoptionsform import Ui_Chooseoptionsform
@@ -13,9 +14,10 @@ from Newuserform import Ui_Newuserform
 from Newuserpass import Ui_Newpassform
 from Listofusers import Ui_Listofusers
 from Userspace_img import Ui_Userspace
-#from Outputform import Ui_Outputform
+# from Outputform import Ui_Outputform
 from USBAccess import Ui_USBAccess
 from Magicsquare import Ui_MagicSquare
+from Message_user import Ui_Msg_to_user
 
 
 # self.users[Имя_пользователя]:
@@ -29,6 +31,7 @@ from Magicsquare import Ui_MagicSquare
 
 def about():
     message('Created by student Danila Urvantsev')
+
 
 def news_from_file(file_name, title):
     try:
@@ -52,9 +55,11 @@ def news_from_file(file_name, title):
         out_msg += (' ' + i + ';')
     return out_msg
 
+
 def clear_file(file_name):
     f = open(file_name, 'w')
     f.close()
+
 
 class Tokb(QtWidgets.QMainWindow):
     def __init__(self):
@@ -102,6 +107,11 @@ class Tokb(QtWidgets.QMainWindow):
 
     def openuserspacedialog(self):
         self.readall()
+        messages = read_messages()
+        if self.name in messages:
+            message(messages[self.name])
+            messages.pop(self.name)
+            write_messages(messages)
         self.writepotok('0')
         self.dialog = Ui_Userspace()
         self.dialog.setupUi(self)
@@ -385,6 +395,7 @@ class Ui_Adminmenu_2(Tokb):
         self.dialog.Options.clicked.connect(self.usersoptions)
         self.dialog.Back.clicked.connect(self.back_button)
         self.dialog.USB.clicked.connect(self.usbdialog)
+        self.dialog.Messege.clicked.connect(self.msgdialog)
 
     def usersoptions(self):
         if self.dialog.Userslist.count() < 1:
@@ -563,10 +574,41 @@ class Ui_Adminmenu_2(Tokb):
         clear_file('bad_guys_bad_word.txt')
         clear_file('bad_guys_bad_time.txt')
 
+    def msgdialog(self):
+        if self.dialog.Userslist.count() < 1:
+            message('List of users is empty')
+        else:
+            self.user = self.ables[self.dialog.Userslist.currentIndex()]
+            self.user_msg = Msg_dialog()
+            self.user_msg.wind.Back.clicked.connect(self.msg_close)
+            self.user_msg.wind.Send.clicked.connect(self.msg_send)
+            self.user_msg.exec_()
+
+    def msg_send(self):
+        message_to_user = self.user_msg.wind.Message_in.text()
+        messages = read_messages()
+        if self.user in messages:
+            messages[self.user] += ('\n' + message_to_user)
+        else:
+            messages.update({self.user: message_to_user})
+        write_messages(messages)
+        self.msg_close()
+
+    def msg_close(self):
+        self.user_msg.close()
+
+
 class UsbAccess(QtWidgets.QDialog):
     def __init__(self):
         super(UsbAccess, self).__init__()
         self.wind = Ui_USBAccess()
+        self.wind.setupUi(self)
+
+
+class Msg_dialog(QtWidgets.QDialog):
+    def __init__(self):
+        super(Msg_dialog, self).__init__()
+        self.wind = Ui_Msg_to_user()
         self.wind.setupUi(self)
 
 

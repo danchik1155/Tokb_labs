@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'ui/Listofusers2.ui'
+# Form implementation generated from reading ui file 'ui/Listofusers_msg.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.1
 #
@@ -36,11 +36,14 @@ class Ui_Listofusers(object):
         self.Userslist.setFont(font)
         self.Userslist.setObjectName("Userslist")
         self.Options = QtWidgets.QPushButton(self.centralwidget)
-        self.Options.setGeometry(QtCore.QRect(40, 55, 75, 23))
+        self.Options.setGeometry(QtCore.QRect(20, 55, 75, 23))
         self.Options.setObjectName("Options")
         self.USB = QtWidgets.QPushButton(self.centralwidget)
-        self.USB.setGeometry(QtCore.QRect(165, 55, 75, 23))
+        self.USB.setGeometry(QtCore.QRect(186, 55, 75, 23))
         self.USB.setObjectName("USB")
+        self.Messege = QtWidgets.QPushButton(self.centralwidget)
+        self.Messege.setGeometry(QtCore.QRect(103, 55, 75, 23))
+        self.Messege.setObjectName("Messege")
         Listofusers.setCentralWidget(self.centralwidget)
         self.statusbar = QtWidgets.QStatusBar(Listofusers)
         self.statusbar.setObjectName("statusbar")
@@ -56,3 +59,4 @@ class Ui_Listofusers(object):
         self.Back.setText(_translate("Listofusers", "Back"))
         self.Options.setText(_translate("Listofusers", "Options"))
         self.USB.setText(_translate("Listofusers", "USB"))
+        self.Messege.setText(_translate("Listofusers", "Messege"))
